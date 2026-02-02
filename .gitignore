@@ -1,0 +1,9 @@
+# Build
+build/
+
+# Benchmark data
+data/
+
+# Hidden files (except .gitignore)
+.*
+!.gitignore
