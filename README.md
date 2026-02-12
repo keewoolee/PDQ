@@ -93,7 +93,7 @@ make
 
 ### Full benchmarks
 
-To run all benchmarks presented in the paper (15-20 compute-minutes):
+To run all benchmarks presented in the paper (15 compute-minutes):
 
 ```bash
 python3 -u ../benchmark.py > benchmark.txt 2>&1
