@@ -31,21 +31,8 @@ SIZE_PATTERNS = {
 
 
 @dataclass
-class Stats:
-    mean: float
-    std: float
-
-
-def compute_stats(values: list[float]) -> Stats:
-    return Stats(
-        mean=statistics.mean(values),
-        std=statistics.stdev(values) if len(values) > 1 else 0.0
-    )
-
-
-@dataclass
 class BenchmarkResult:
-    timing: dict[str, Stats]
+    timing: dict[str, float]
     sizes: dict[str, float]
 
 
@@ -81,8 +68,7 @@ def run_benchmark(N: int, s: int) -> BenchmarkResult:
 
         print("done")
 
-    # Compute timing stats
-    timing = {name: compute_stats(values) for name, values in time_results.items()}
+    timing = {name: statistics.median(values) for name, values in time_results.items()}
 
     return BenchmarkResult(timing=timing, sizes=sizes)
 
@@ -91,62 +77,47 @@ def run_benchmark(N: int, s: int) -> BenchmarkResult:
 # Experiment Definitions
 # =============================================================================
 
-EXPERIMENTS = {
-    # Varying num_matching (N=16384)
-    "(16384, 8)": (16384, 8),
-    "(16384, 16)": (16384, 16),
-    "(16384, 32)": (16384, 32),
-    "(16384, 64)": (16384, 64),
-    "(16384, 128)": (16384, 128),
-
-    # Varying num_records (s=16)
-    "(8192, 16)": (8192, 16),
-    "(32768, 16)": (32768, 16),
-    "(65536, 16)": (65536, 16),
-    "(131072, 16)": (131072, 16),
-    "(262144, 16)": (262144, 16),
-    "(524288, 16)": (524288, 16),
-}
-
 FIGURES = {
     "Vary num_matching (N=16384)": [
-        "(16384, 8)", "(16384, 16)", "(16384, 32)", "(16384, 64)", "(16384, 128)"
+        (16384, 8), (16384, 16), (16384, 32), (16384, 64), (16384, 128),
     ],
     "Vary num_records (s=16)": [
-        "(8192, 16)", "(16384, 16)", "(32768, 16)", "(65536, 16)",
-        "(131072, 16)", "(262144, 16)", "(524288, 16)"
+        (8192, 16), (16384, 16), (32768, 16), (65536, 16),
+        (131072, 16), (262144, 16), (524288, 16),
     ],
 }
+
+EXPERIMENTS = list(dict.fromkeys(e for exps in FIGURES.values() for e in exps))
 
 
 # =============================================================================
 # Output Formatting
 # =============================================================================
 
-def print_timing_table(results: dict[str, BenchmarkResult], exp_names: list[str]):
+def print_timing_table(results: dict[tuple, BenchmarkResult], experiments: list[tuple]):
     """Print timing results table."""
 
     C = 13  # config column width
     W = 14  # data column width
 
-    def fmt(stat: Stats) -> str:
-        s = f"{stat.mean:.2f} ± {stat.std:.2f}"
-        return f"{s:>{W}}"
+    def fmt(val: float) -> str:
+        return f"{val:>{W}.2f}"
 
     print()
     print(f"{'(N, s)':<{C}} {'Match (s)':>{W}} {'Mask (s)':>{W}} "
           f"{'RS (s)':>{W}} {'Comp (s)':>{W}} {'Decomp (ms)':>{W}}")
     print("-" * (C + 1 + (W + 1) * 5))
 
-    for name in exp_names:
-        if name not in results:
+    for exp in experiments:
+        if exp not in results:
             continue
-        t = results[name].timing
-        print(f"{name:<{C}} {fmt(t['Match'])} {fmt(t['Mask'])} "
+        t = results[exp].timing
+        label = f"({exp[0]}, {exp[1]})"
+        print(f"{label:<{C}} {fmt(t['Match'])} {fmt(t['Mask'])} "
               f"{fmt(t['RingSwitch'])} {fmt(t['Compress'])} {fmt(t['Decompress'])}")
 
 
-def print_comm_table(results: dict[str, BenchmarkResult], exp_names: list[str]):
+def print_comm_table(results: dict[tuple, BenchmarkResult], experiments: list[tuple]):
     """Print communication costs table."""
 
     C = 13  # config column width
@@ -163,11 +134,12 @@ def print_comm_table(results: dict[str, BenchmarkResult], exp_names: list[str]):
           f"{'EvalKey (MB)':>{W}} {'RotKey (MB)':>{W}} {'SwKey (MB)':>{W}}")
     print("-" * (C + 1 + (W + 1) * 5))
 
-    for name in exp_names:
-        if name not in results:
+    for exp in experiments:
+        if exp not in results:
             continue
-        s = results[name].sizes
-        print(f"{name:<{C}} {fmt_kb(s.get('Digest', 0))} {fmt_mb(s.get('Query', 0))} "
+        s = results[exp].sizes
+        label = f"({exp[0]}, {exp[1]})"
+        print(f"{label:<{C}} {fmt_kb(s.get('Digest', 0))} {fmt_mb(s.get('Query', 0))} "
               f"{fmt_mb(s.get('EvalKey', 0))} {fmt_mb(s.get('RotKey', 0))} "
               f"{fmt_mb(s.get('SwitchKey', 0))}")
 
@@ -176,10 +148,10 @@ def main():
     print(f"Running {len(EXPERIMENTS)} experiments with {NUM_RUNS} runs each...\n")
     results = {}
 
-    for name, (N, s) in EXPERIMENTS.items():
+    for N, s in EXPERIMENTS:
         print(f"  N={N}, s={s}:")
         try:
-            results[name] = run_benchmark(N, s)
+            results[(N, s)] = run_benchmark(N, s)
         except Exception as e:
             print(f"    ERROR: {e}")
             continue
@@ -188,8 +160,8 @@ def main():
     print("TIMING RESULTS")
     print("=" * 78)
 
-    for fig_name, exp_names in FIGURES.items():
-        relevant = [n for n in exp_names if n in results]
+    for fig_name, experiments in FIGURES.items():
+        relevant = [e for e in experiments if e in results]
         if relevant:
             print(f"\n[{fig_name}]")
             print_timing_table(results, relevant)
@@ -198,8 +170,8 @@ def main():
     print("COMMUNICATION COSTS")
     print("=" * 78)
 
-    for fig_name, exp_names in FIGURES.items():
-        relevant = [n for n in exp_names if n in results]
+    for fig_name, experiments in FIGURES.items():
+        relevant = [e for e in experiments if e in results]
         if relevant:
             print(f"\n[{fig_name}]")
             print_comm_table(results, relevant)
