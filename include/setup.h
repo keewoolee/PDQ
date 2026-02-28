@@ -6,6 +6,7 @@
 
 void updateGlobal();
 void initBFVParams(lbcrypto::CCParams<lbcrypto::CryptoContextBFVRNS>& params);
+void initBFVParams_comp(lbcrypto::CCParams<lbcrypto::CryptoContextBFVRNS>& params);
 void initBFVParams_trace(lbcrypto::CCParams<lbcrypto::CryptoContextBFVRNS>& params);
 void enableFeatures(lbcrypto::CryptoContext<lbcrypto::DCRTPoly>& context);
 std::vector<int32_t> computeRotationIndices();

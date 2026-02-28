@@ -44,6 +44,12 @@ void pdq() {
     auto keypair = context->KeyGen();
     context->EvalMultKeyGen(keypair.secretKey);
 
+    // Create compression context
+    CCParams<CryptoContextBFVRNS> params_comp;
+    initBFVParams_comp(params_comp);
+    auto context_comp = GenCryptoContext(params_comp);
+    enableFeatures(context_comp);
+
     // Create trace context with matching moduli from main context
     CCParams<CryptoContextBFVRNS> params_trace;
     initBFVParams_trace(params_trace);
@@ -62,13 +68,13 @@ void pdq() {
         context_trace->EvalRotateKeyGen(keypair_trace.secretKey, rotIndices);
     }
 
-    // Generate switch target keypair in MAIN context and lift it
-    auto keypair_switch_target = context->KeyGen();
-    liftSecretKey(keypair_switch_target, keypair_trace);
+    // Generate compression keypair and lift trace key into it
+    auto keypair_comp = context_comp->KeyGen();
+    liftSecretKey(keypair_comp, keypair_trace);
 
-    // Create switch key: main key -> lifted key (both in main context)
+    // Create switch key: main key -> lifted key (comp context level)
     auto switch_key = context->GetScheme()->KeySwitchGen(
-        keypair.secretKey, keypair_switch_target.secretKey);
+        keypair.secretKey, keypair_comp.secretKey);
 
     // Generate and encrypt test data
     auto testData = generateTestData();

@@ -41,6 +41,16 @@ void initBFVParams(CCParams<CryptoContextBFVRNS>& params) {
     params.SetSecurityLevel(HEStd_128_classic);
 }
 
+void initBFVParams_comp(CCParams<CryptoContextBFVRNS>& params) {
+    params.SetPlaintextModulus(ptxt_modulus);
+    params.SetRingDim(degree);
+    params.SetMultiplicativeDepth(MultiplicativeDepth_trace);
+    params.SetScalingModSize(ScalingModSize);
+    params.SetNumLargeDigits(NumLargeDigits_trace);
+    params.SetKeySwitchTechnique(HYBRID);
+    params.SetSecurityLevel(HEStd_128_classic);
+}
+
 void initBFVParams_trace(CCParams<CryptoContextBFVRNS>& params) {
     params.SetPlaintextModulus(ptxt_modulus);
     params.SetRingDim(degree_trace);
