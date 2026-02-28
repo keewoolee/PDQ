@@ -32,8 +32,8 @@ SIZE_PATTERNS = {
 
 @dataclass
 class BenchmarkResult:
-    timing: dict[str, float]
-    sizes: dict[str, float]
+    timing: dict
+    sizes: dict
 
 
 def run_benchmark(N: int, s: int) -> BenchmarkResult:
@@ -94,7 +94,7 @@ EXPERIMENTS = list(dict.fromkeys(e for exps in FIGURES.values() for e in exps))
 # Output Formatting
 # =============================================================================
 
-def print_timing_table(results: dict[tuple, BenchmarkResult], experiments: list[tuple]):
+def print_timing_table(results, experiments):
     """Print timing results table."""
 
     C = 13  # config column width
@@ -117,7 +117,7 @@ def print_timing_table(results: dict[tuple, BenchmarkResult], experiments: list[
               f"{fmt(t['RingSwitch'])} {fmt(t['Compress'])} {fmt(t['Decompress'])}")
 
 
-def print_comm_table(results: dict[tuple, BenchmarkResult], experiments: list[tuple]):
+def print_comm_table(results, experiments):
     """Print communication costs table."""
 
     C = 13  # config column width
